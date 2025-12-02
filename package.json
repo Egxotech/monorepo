@@ -1,5 +1,5 @@
 {
-  "name": "egxotech-monorepo",
+  "name": "@egxotech/monorepo",
   "private": true,
   "scripts": {
     "build": "turbo run build",

@@ -19,10 +19,15 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@prisma/client": "^7.0.1",
     "dotenv": "^17.2.3",
     "prisma": "^7.0.1",
     "prisma-case-format": "^1.0.1",
     "prismabox": "^1.1.25",
     "tsx": "^4.21.0"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./client": "./client/client.ts"
   }
 }
