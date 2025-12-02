@@ -8,7 +8,9 @@
     "prisma:generate": "bun run prisma generate",
     "prisma:studio": "bun run prisma studio",
     "prisma:reset": "bun run prisma migrate reset",
-    "migrate": "bun prisma migrate dev"
+    "db:push": "bun run prisma db push",
+    "migrate": "bun run prisma migrate dev",
+    "format": "prisma-case-format --file ./prisma/schema.prisma --table-case pascal --field-case camel --enum-case pascal --map-table-case snake,plural --map-field-case snake --map-enum-case snake --pluralize"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -19,6 +21,8 @@
   "dependencies": {
     "dotenv": "^17.2.3",
     "prisma": "^7.0.1",
+    "prisma-case-format": "^1.0.1",
+    "prismabox": "^1.1.25",
     "tsx": "^4.21.0"
   }
 }

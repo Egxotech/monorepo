@@ -1,28 +1,18 @@
 {
+  "extends": "../typescript-config/base.json",
   "compilerOptions": {
-    // Environment setup & latest features
-    "lib": [
-      "ESNext"
-    ],
-    "target": "ESNext",
-    "module": "Preserve",
-    "moduleDetection": "force",
-    "jsx": "react-jsx",
-    "allowJs": true,
-    // Bundler mode
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "noEmit": true,
-    // Best practices
-    "strict": true,
-    "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    // Some stricter flags (disabled by default)
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
-  }
+    "composite": true,
+    "incremental": true,
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "../../dist/packages/database",
+    "tsBuildInfoFile": "../../dist/packages/database/.tsbuildinfo"
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
 }

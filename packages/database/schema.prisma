@@ -6,9 +6,71 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "./client"
+
+  runtime                = "bun"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+}
+
+generator prismabox {
+  provider                    = "prismabox"
+  // you can optionally specify the output location. Defaults to ./prismabox
+  output                      = "./prismabox"
+  // if you want, you can customize the imported variable name that is used for the schemes. Defaults to "Type" which is what the standard typebox package offers
+  typeboxImportVariableName   = "t"
+  // you also can specify the dependency from which the above import should happen. This is useful if a package re-exports the typebox package and you would like to use that
+  typeboxImportDependencyName = "elysia"
+  // by default the generated schemes do not allow additional properties. You can allow them by setting this to true
+  // additionalProperties        = true
+  // optionally enable the data model generation. See the data model section below for more info
+  inputModel                  = true
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id    Int    @id @default(autoincrement())
+  /// @prismabox.options{minLength:3,maxLength:255}
+  email String @unique @db.VarChar(255)
+
+  /// @prismabox.options{minLength:2,maxLength:50}
+  firstName String   @map("first_name") @db.VarChar(50)
+  /// @prismabox.options{minLength:2,maxLength:50}
+  lastName  String   @map("last_name") @db.VarChar(50)
+  /// @prismabox.hide.input
+  name      String   @map("full_name") @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  posts Post[] @relation("PostToUser")
+
+  @@map("users")
+}
+
+model Post {
+  /// @prismabox.hide
+  id   Int    @id @default(autoincrement())
+  uuid String @unique @default(uuid())
+
+  /// @prismabox.options{minLength:2,maxLength:255}
+  title String @db.VarChar(255)
+
+  /// @prismabox.options{minLength:2}
+  content String @db.Text
+
+  author   User @relation("PostToUser", fields: [authorId], references: [id], onDelete: Cascade)
+  /// @prismabox.hide
+  authorId Int  @map("author_id")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  /// @prismabox.input.hide
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([deletedAt])
+  @@map("posts")
 }
