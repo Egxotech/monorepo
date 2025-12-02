@@ -1,3 +1,3 @@
-export * from './instance';
-export { default } from './instance';
-export { PrismaClient } from './client/client';
+export * from './instance.js';
+export { default } from './instance.js';
+export { PrismaClient } from './client/client.js';

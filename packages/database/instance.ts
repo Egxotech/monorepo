@@ -1,6 +1,7 @@
-import { PrismaClient } from './client/client';
+import { PrismaClient } from './client/client.js';
 
 const enableQueryLog = false;
+
 const prisma = new PrismaClient(
     enableQueryLog
         ? {
@@ -22,8 +23,8 @@ const prisma = new PrismaClient(
                     level: 'warn',
                 },
             ],
-        }
-        : undefined,
+        } as any
+        : undefined
 );
 
 export default prisma;
