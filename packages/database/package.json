@@ -1,0 +1,24 @@
+{
+  "name": "@egxotech/database",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "main": "src/client.ts",
+  "scripts": {
+    "prisma:generate": "bun run prisma generate",
+    "prisma:studio": "bun run prisma studio",
+    "prisma:reset": "bun run prisma migrate reset",
+    "migrate": "bun prisma migrate dev"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "prisma": "^7.0.1",
+    "tsx": "^4.21.0"
+  }
+}

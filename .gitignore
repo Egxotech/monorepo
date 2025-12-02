@@ -15,6 +15,7 @@ node_modules
 
 config/api/.env
 config/web/.env
+config/database/.env
 
 
 # Testing
