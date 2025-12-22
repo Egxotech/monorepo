@@ -1,7 +1,6 @@
 {
   "name": "@egxotech/database",
   "module": "index.ts",
-  "type": "module",
   "private": true,
   "main": "index.ts",
   "scripts": {
@@ -19,8 +18,11 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^latest",
     "@prisma/client": "^7.0.1",
+    "@types/pg": "^8.15.6",
     "dotenv": "^17.2.3",
+    "pg": "^8.16.3",
     "prisma": "^7.0.1",
     "prisma-case-format": "^1.0.1",
     "prismabox": "^1.1.25",
@@ -28,6 +30,8 @@
   },
   "exports": {
     ".": "./index.ts",
-    "./client": "./client/client.ts"
+    "./client": "./client/client.js",
+    "./client/index": "./client/index.js",
+    "./client/edge": "./client/edge.js"
   }
 }

@@ -1,6 +1,5 @@
 import type { PrismaConfig } from "prisma";
 import { loadEnv } from "./config/env";
-import { env } from "prisma/config";
 
 loadEnv();
 
@@ -10,6 +9,6 @@ export default {
     path: './migrations'
   },
   datasource: {
-    url: env("DATABASE_URL")
+    url: process.env.DATABASE_URL || "postgresql://localhost:5432/temp"
   }
 } satisfies PrismaConfig;
