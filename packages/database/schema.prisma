@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "./client"
@@ -11,15 +8,9 @@ generator client {
 
 generator prismabox {
   provider                    = "prismabox"
-  // you can optionally specify the output location. Defaults to ./prismabox
   output                      = "./prismabox"
-  // if you want, you can customize the imported variable name that is used for the schemes. Defaults to "Type" which is what the standard typebox package offers
   typeboxImportVariableName   = "t"
-  // you also can specify the dependency from which the above import should happen. This is useful if a package re-exports the typebox package and you would like to use that
   typeboxImportDependencyName = "elysia"
-  // by default the generated schemes do not allow additional properties. You can allow them by setting this to true
-  // additionalProperties        = true
-  // optionally enable the data model generation. See the data model section below for more info
   inputModel                  = true
 }
 
@@ -27,8 +18,18 @@ datasource db {
   provider = "postgresql"
 }
 
+enum RoleType {
+  BASIC  
+  ADMIN  
+  CUSTOM 
+
+  @@map("role_type")
+}
+
 model User {
   id    Int    @id @default(autoincrement())
+  uuid  String @unique @default(uuid())
+  
   /// @prismabox.options{minLength:3,maxLength:255}
   email String @unique @db.VarChar(255)
 
@@ -37,16 +38,199 @@ model User {
   /// @prismabox.options{minLength:2,maxLength:50}
   lastName  String @map("last_name") @db.VarChar(50)
   /// @prismabox.hide.input
-  name      String @map("full_name") @db.VarChar(100)
+  name      String @map("full_name") @db.VarChar(101)
 
-  password  String   @db.VarChar(255)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  /// @prismabox.hide
+  /// Hashed password for credential-based auth (null for OAuth-only users)
+  password String? @db.VarChar(255)
 
-  posts Post[] @relation("PostToUser")
+  /// @prismabox.hide
+  /// User claims/permissions (cached for performance)
+  /// Structure: ["permission.code", "another.permission"]
+  claims Json? @db.JsonB
 
+  /// @prismabox.hide
+  /// User roles cache (for quick access)
+  /// Structure: [{ roleId: number, roleName: string, roleUuid: string }]
+  roles Json? @db.JsonB
+
+  emailVerified Boolean @default(false) @map("email_verified")
+  isActive      Boolean @default(true) @map("is_active")
+
+  image String? @db.VarChar(255)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  posts           Post[]           @relation("PostToUser")
+  userRoles       UserRole[]       @relation("UserRoleToUser")
+  userPermissions UserPermission[] @relation("UserToUserPermission")
+  sessions        Session[]        @relation("SessionToUser")
+  accounts        Account[]        @relation("AccountToUser")
+  impersonations  Session[]        @relation("SessionToImpersonatedBy")
+
+  @@index([email])
+  @@index([deletedAt])
   @@map("users")
 }
+
+
+model Role {
+  /// @prismabox.hide
+  id   Int    @id @default(autoincrement())
+  uuid String @unique @default(uuid())
+
+  /// @prismabox.options{minLength:2,maxLength:64}
+  name String @db.VarChar(64)
+
+  /// @prismabox.options{minLength:0,maxLength:255}
+  description String? @db.VarChar(255)
+
+  // Role type: BASIC, ADMIN (system defaults), CUSTOM (user-created)
+  type RoleType @default(CUSTOM)
+
+  /// Permission codes stored as JSON array
+  /// Structure: ["users.create", "users.read", "posts.delete"]
+  permissions Json @default("[]") @db.JsonB
+
+  /// Role hierarchy order (higher = more powerful)
+  /// Users can only manage roles with lower order than their highest role
+  order Int @default(0)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  userRoles UserRole[] @relation("UserRoleToRole")
+
+  @@unique([name])
+  @@unique([order])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("roles")
+}
+
+model UserRole {
+  /// @prismabox.hide
+  id Int @id @default(autoincrement())
+
+  user   User @relation("UserRoleToUser", fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @map("user_id")
+
+  role   Role @relation("UserRoleToRole", fields: [roleId], references: [id], onDelete: Cascade)
+  roleId Int  @map("role_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model UserPermission {
+  /// @prismabox.hide
+  id Int @id @default(autoincrement())
+
+  user   User @relation("UserToUserPermission", fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @map("user_id")
+
+  /// @prismabox.options{minLength:2,maxLength:128}
+  permissionCode String @map("permission_code") @db.VarChar(128)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, permissionCode])
+  @@index([userId])
+  @@index([permissionCode])
+  @@map("user_permissions")
+}
+
+
+model Session {
+  id     String @id @default(uuid())
+  
+  user   User   @relation("SessionToUser", fields: [userId], references: [id], onDelete: Cascade)
+  userId Int    @map("user_id")
+
+  /// @prismabox.hide
+  /// JWT token or session token
+  token String @unique
+
+  /// Impersonation support (admin acting as another user)
+  impersonatedBy   User? @relation("SessionToImpersonatedBy", fields: [impersonatedById], references: [id], onDelete: SetNull)
+  impersonatedById Int?  @map("impersonated_by_id")
+
+  ipAddress String? @map("ip_address") @db.VarChar(45)
+  userAgent String? @map("user_agent") @db.VarChar(512)
+
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Account {
+  id         String @id @default(uuid())
+  
+  /// Account ID from the provider (e.g., Google user ID)
+  accountId  String @map("account_id")
+  
+  /// Provider name (e.g., "google", "github", "credentials")
+  providerId String @map("provider_id")
+
+  user   User @relation("AccountToUser", fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @map("user_id")
+
+  /// OAuth tokens
+  accessToken  String? @map("access_token") @db.Text
+  refreshToken String? @map("refresh_token") @db.Text
+  idToken      String? @map("id_token") @db.Text
+
+  /// OAuth scopes
+  scope String? @db.Text
+
+  /// For credential-based auth (stored separately from User.password for flexibility)
+  password String? @db.VarChar(255)
+
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String @id @default(uuid())
+  
+  /// Email or phone number
+  identifier String @db.VarChar(255)
+
+  /// Verification code or token
+  value String @db.VarChar(512)
+
+  /// Type: "email_verification", "password_reset", "2fa"
+  type String @default("email_verification") @db.VarChar(32)
+
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([identifier, type])
+  @@index([identifier])
+  @@index([expiresAt])
+  @@map("verifications")
+}
+
 
 model Post {
   /// @prismabox.hide
@@ -68,6 +252,7 @@ model Post {
   /// @prismabox.input.hide
   deletedAt DateTime? @map("deleted_at")
 
+  @@index([authorId])
   @@index([deletedAt])
   @@map("posts")
 }
