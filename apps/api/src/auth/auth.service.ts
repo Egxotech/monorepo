@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/service';
 import { SessionsService } from '../sessions/session.service';
 import { RegisterDto } from './dto/register.dto';
-import { jwtConfig } from '../common/config/jwt.config';
+import { jwtConfig } from '../config/jwt.config';
 import { User } from '@egxotech/database/client';
 
 @Injectable()
@@ -39,8 +39,7 @@ export class AuthService {
   }
 
   // Yeni kullanıcı kaydı
-  async register(dto: RegisterDto): Promise<User> {
-    // Email zaten kayıtlı mı?
+  async register(dto: RegisterDto) {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -49,8 +48,10 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
+    // Şifreyi hash'le
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
+    // User oluştur
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
@@ -71,33 +72,27 @@ export class AuthService {
     };
   }
 
-  async login(user: User, ipAddress?: string, userAgent?: string): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    user: {
-      id: number;
-      uuid: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-    };
-  }> {
+  // Login - token oluştur
+  async login(user: any, ipAddress?: string, userAgent?: string) {
     const payload = {
       sub: user.id,
       email: user.email,
       uuid: user.uuid,
-      claims: [], 
+      claims: [], // Şimdilik boş, roles ekleyince dolacak
     };
 
+    // Access token oluştur
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: jwtConfig.accessTokenExpiresIn,
     });
 
+    // Refresh token oluştur
     const refreshToken = this.jwtService.sign(
       { sub: user.id, type: 'refresh' },
       { expiresIn: jwtConfig.refreshTokenExpiresIn },
     );
 
+    // Session kaydet
     await this.sessionService.createSession({
       userId: user.id,
       token: accessToken,

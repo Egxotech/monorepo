@@ -11,9 +11,9 @@ export class SessionsService {
     token: string;
     ipAddress?: string;
     userAgent?: string;
-    expiresIn: string;
-  }) {
-    const expiresAt = this.calculateExpiryDate(data.expiresIn);
+    expiresIn: number; // seconds
+  }): Promise<Session> {
+    const expiresAt = new Date(Date.now() + data.expiresIn * 1000);
 
     return this.prisma.session.create({
       data: {
@@ -26,33 +26,16 @@ export class SessionsService {
     });
   }
 
-  async findByToken(token: string) : Promise<Session | null> {
+  async findByToken(token: string): Promise<Session | null> {
     return this.prisma.session.findUnique({
       where: { token },
       include: { user: true },
     });
   }
 
-  async deleteSession(token: string) {
+  async deleteSession(token: string): Promise<Session> {
     return this.prisma.session.delete({
       where: { token },
     });
-  }
-
-  private calculateExpiryDate(expiresIn: string): Date {
-    const match = expiresIn.match(/^(\d+)([smhd])$/);
-    if (!match) throw new Error('Invalid expiresIn format');
-
-    const value = parseInt(match[1]);
-    const unit = match[2];
-    const now = new Date();
-
-    switch (unit) {
-      case 's': return new Date(now.getTime() + value * 1000);
-      case 'm': return new Date(now.getTime() + value * 60 * 1000);
-      case 'h': return new Date(now.getTime() + value * 60 * 60 * 1000);
-      case 'd': return new Date(now.getTime() + value * 24 * 60 * 60 * 1000);
-      default: throw new Error('Invalid time unit');
-    }
   }
 }
