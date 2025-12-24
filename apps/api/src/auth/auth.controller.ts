@@ -7,6 +7,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
@@ -14,7 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { RequestWithUser, UserPayload } from '../common/types/request-with-user.type';
+import * as requestWithUserType from '../common/types/request-with-user.type';
 
 @Controller('auth')
 export class AuthController {
@@ -30,7 +31,7 @@ export class AuthController {
   @UseGuards(AuthGuard('local'))
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Body() dto: LoginDto, @Req() req: UserPayload & RequestWithUser) {
+  async login(@Body() dto: LoginDto, @Req() req: requestWithUserType.RequestWithUser) {
     // LocalStrategy user validated and req.user added
     return this.authService.login(
       req.user,
@@ -40,12 +41,16 @@ export class AuthController {
   }
 
   @Get('me')
-  getProfile(@CurrentUser() user: UserPayload & RequestWithUser) {
+  getProfile(@CurrentUser() user: requestWithUserType.UserPayload) {
+    if (!user) {
+      throw new Error('User not found in request');
+    }
+    
     return {
-      id: user.user.sub,
-      email: user.user.email,
-      uuid: user.user.uuid,
-      claims: user.user.claims,
+      id: user.sub,
+      email: user.email,
+      uuid: user.uuid,
+      claims: user.claims,
     };
   }
 }
