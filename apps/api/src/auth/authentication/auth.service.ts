@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/service';
-import { SessionsService } from '../sessions/session.service';
+import { PrismaService } from '../../prisma/service';
+import { SessionsService } from '../../sessions/session.service';
 import { RegisterDto } from './dto/register.dto';
-import { jwtConfig } from '../config/jwt.config';
+import { jwtConfig } from '../../config/jwt.config';
 import { User } from '@egxotech/database/client';
 
 @Injectable()

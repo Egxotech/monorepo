@@ -4,4 +4,3 @@ export const jwtConfig = {
   accessTokenExpiresIn: 900, // 15 minutes (15 * 60)
   refreshTokenExpiresIn: 604800, // 7 days (7 * 24 * 60 * 60)
 };
-

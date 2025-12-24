@@ -6,11 +6,11 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { PrismaModule } from '../prisma/module';
-import { UsersModule } from '../users/user.module';
-import { SessionsModule } from '../sessions/session.module';
-import { jwtConfig } from '../config/jwt.config';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PrismaModule } from '../../prisma/module';
+import { UsersModule } from '../../users/user.module';
+import { SessionsModule } from '../../sessions/session.module';
+import { jwtConfig } from '../../config/jwt.config';
 
 @Module({
   imports: [

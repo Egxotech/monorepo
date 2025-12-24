@@ -13,9 +13,9 @@ import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { Public } from '../common/decorators/public.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import * as requestWithUserType from '../common/types/request-with-user.type';
+import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import * as requestWithUserType from '../../common/types/request-with-user.type';
 
 @Controller('auth')
 export class AuthController {
