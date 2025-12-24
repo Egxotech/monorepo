@@ -16,6 +16,7 @@ import { RegisterDto } from './dto/register.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import * as requestWithUserType from '../../common/types/request-with-user.type';
+import { User } from '@egxotech/database/client';
 
 @Controller('auth')
 export class AuthController {
@@ -34,7 +35,7 @@ export class AuthController {
   async login(@Body() dto: LoginDto, @Req() req: requestWithUserType.RequestWithUser) {
     // LocalStrategy user validated and req.user added
     return this.authService.login(
-      req.user,
+      req.user as unknown as User,
       req.ip,
       req.headers['user-agent'],
     );

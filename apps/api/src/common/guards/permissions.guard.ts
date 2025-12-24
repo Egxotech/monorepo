@@ -35,17 +35,25 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
+    // DEBUG: Log için
+    console.log('🔍 PermissionsGuard Debug:');
+    console.log('  Required permissions:', requiredPermissions);
+    console.log('  User claims:', user.claims);
+    console.log('  User ID:', user.sub);
+
     // Check if user has all required permissions
     const hasAllPermissions = requiredPermissions.every((permission) =>
       user.claims.includes(permission),
     );
 
     if (!hasAllPermissions) {
+      console.log('  ❌ Permission denied!');
       throw new ForbiddenException(
-        `Missing required permissions: ${requiredPermissions.join(', ')}`,
+        `Missing required permissions: ${requiredPermissions.join(', ')}. You have: ${user.claims.join(', ')}`,
       );
     }
 
+    console.log('  ✅ Permission granted!');
     return true;
   }
 }

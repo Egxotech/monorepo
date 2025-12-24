@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/service';
@@ -63,22 +63,88 @@ export class AuthService {
       },
     });
 
+    // Rol ataması (body'den gelen veya default BASIC)
+    const roleNames = dto.roles && dto.roles.length > 0 
+      ? dto.roles 
+      : ['Basic User']; // Default
+
+    // Rol isimlerini database'den bul
+    const rolesToAssign = await this.prisma.role.findMany({
+      where: {
+        name: { in: roleNames },
+        deletedAt: null,
+      },
+    });
+
+    if (rolesToAssign.length === 0) {
+      throw new BadRequestException('No valid roles found');
+    }
+
+    // Rolleri ata
+    const allClaims = new Set<string>();
+    const rolesCache: { roleId: number; roleName: string; roleUuid: string }[] = [];
+
+    for (const role of rolesToAssign) {
+      // user_roles tablosuna ekle
+      await this.prisma.userRole.create({
+        data: {
+          userId: user.id,
+          roleId: role.id,
+        },
+      });
+
+      // Claims topla
+      const rolePermissions = role.permissions as string[];
+      rolePermissions.forEach((perm) => allClaims.add(perm));
+
+      // Roles cache
+      rolesCache.push({
+        roleId: Number(role.id),
+        roleName: String(role.name),
+        roleUuid: String(role.uuid),
+      });
+    }
+
+    // User claims cache'ini güncelle
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        claims: Array.from(allClaims),
+        roles: rolesCache,
+      },
+    });
+
     return {
       id: user.id,
       uuid: user.uuid,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      roles: rolesCache,
     };
   }
 
   // Login - token oluştur
-  async login(user: any, ipAddress?: string, userAgent?: string) {
+  async login(user: User, ipAddress?: string, userAgent?: string) {
+    // User'ın güncel claims'lerini database'den al
+    const fullUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        uuid: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        claims: true,
+        roles: true,
+      },  
+    });
+
     const payload = {
-      sub: user.id,
-      email: user.email,
-      uuid: user.uuid,
-      claims: [], // Şimdilik boş, roles ekleyince dolacak
+      sub: fullUser!.id,
+      email: fullUser!.email,
+      uuid: fullUser!.uuid,
+      claims: (fullUser!.claims as string[]) || [],
     };
 
     // Access token oluştur
@@ -88,13 +154,13 @@ export class AuthService {
 
     // Refresh token oluştur
     const refreshToken = this.jwtService.sign(
-      { sub: user.id, type: 'refresh' },
+      { sub: fullUser!.id, type: 'refresh' },
       { expiresIn: jwtConfig.refreshTokenExpiresIn },
     );
 
     // Session kaydet
     await this.sessionService.createSession({
-      userId: user.id,
+      userId: fullUser!.id,
       token: accessToken,
       ipAddress,
       userAgent,
@@ -105,12 +171,14 @@ export class AuthService {
       accessToken,
       refreshToken,
       user: {
-        id: user.id,
-        uuid: user.uuid,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      },
+        id: fullUser!.id,
+        uuid: fullUser!.uuid,
+        email: fullUser!.email,
+        firstName: fullUser!.firstName,
+        lastName: fullUser!.lastName,
+        claims: fullUser!.claims as string[],
+        roles: fullUser!.roles,
+      } as User,
     };
   }
 }

@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsEmail, IsString, MinLength, MaxLength, IsArray, IsOptional } from 'class-validator';
 
 export class RegisterDto {
   @IsEmail()
@@ -17,4 +17,9 @@ export class RegisterDto {
   @MinLength(2)
   @MaxLength(50)
   lastName: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  roles?: string[]; // Rol isimleri: ["Basic User", "Administrator"]
 }
